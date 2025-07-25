@@ -1,0 +1,233 @@
+import React, { useEffect, useState, ChangeEvent } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import api from './api';
+
+interface ItemInfo {
+  id: number;
+  name: string;
+  price: number;
+  shortDescription: string;
+  landingPageDescription: string;
+  imageUrls?: string[];
+}
+
+interface ItemImageInfo {
+  id: number;
+  imageUrl: string;
+}
+
+const ItemEdit: React.FC = () => {
+  const { clientId, itemId } = useParams<{ clientId: string; itemId: string }>();
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [shortDescription, setShortDescription] = useState('');
+  const [landingPageDescription, setLandingPageDescription] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [images, setImages] = useState<ItemImageInfo[]>([]);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    fetchItem();
+    fetchImages();
+    // eslint-disable-next-line
+  }, [clientId, itemId]);
+
+  const fetchItem = async () => {
+    if (!clientId || !itemId) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.get<ItemInfo[]>(`/admin/item`, { params: { clientId } });
+      const items = res.data;
+      const item = items.find((i) => String(i.id) === String(itemId));
+      if (!item) {
+        setError('상품 정보를 찾을 수 없습니다.');
+        return;
+      }
+      setName(item.name);
+      setPrice(String(item.price));
+      setShortDescription(item.shortDescription);
+      setLandingPageDescription(item.landingPageDescription);
+    } catch (err: any) {
+      setError('상품 정보를 불러오지 못했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchImages = async () => {
+    if (!itemId) return;
+    setImageLoading(true);
+    setImageError('');
+    try {
+      const res = await api.get<ItemImageInfo[]>(`/admin/item/image`, { params: { itemId } });
+      setImages(res.data);
+    } catch (err: any) {
+      setImageError('이미지 목록을 불러오지 못했습니다.');
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const handleDescEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientId || !itemId) {
+      setError('잘못된 접근입니다.');
+      return;
+    }
+    if (!name.trim() || !price.trim() || !shortDescription.trim() || !landingPageDescription.trim()) {
+      setError('모든 항목을 입력해주세요.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await api.put('/admin/item', {
+        clientId: Number(clientId),
+        itemId: Number(itemId),
+        name: name.trim(),
+        price: Number(price),
+        shortDescription: shortDescription.trim(),
+        landingPageDescription: landingPageDescription.trim(),
+      });
+      alert('설명 수정이 완료되었습니다!');
+      window.location.reload();
+    } catch (err: any) {
+      setError(err.response?.data?.message || '설명 수정에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('이미지 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+    setUploading(true);
+    setImageError('');
+    try {
+      const base64 = await fileToBase64(file);
+      await api.post('/admin/item/image', {
+        clientId: Number(clientId),
+        itemId: Number(itemId),
+        encodedImage: base64,
+      });
+      alert('이미지 업로드가 완료되었습니다!');
+      window.location.reload();
+    } catch (err: any) {
+      setImageError(err.response?.data?.message || '이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageDelete = async (itemImageId: number) => {
+    if (!window.confirm('정말 이미지를 삭제하시겠습니까?')) return;
+    setUploading(true);
+    setImageError('');
+    try {
+      await api.delete('/admin/item/image', {
+        data: {
+          itemId: Number(itemId),
+          itemImageId,
+        },
+      } as any);
+      alert('이미지 삭제가 완료되었습니다!');
+      window.location.reload();
+    } catch (err: any) {
+      setImageError(err.response?.data?.message || '이미지 삭제에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  return (
+    <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
+      {/* 돌아가기 버튼 */}
+      <button
+        onClick={() => navigate(`/client/${clientId}/items`)}
+        style={{ marginBottom: 20, background: '#666', color: '#fff', padding: '8px 18px', border: 'none', borderRadius: 4, fontWeight: 'bold', cursor: 'pointer' }}
+      >
+        ← 돌아가기
+      </button>
+      <h1>상품 수정</h1>
+      {loading ? (
+        <div>상품 정보를 불러오는 중...</div>
+      ) : (
+        <form onSubmit={handleDescEdit} style={{ background: '#fff', padding: 24, borderRadius: 8, border: '1px solid #ddd', marginBottom: 32 }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>상품명 *</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4 }} disabled={loading} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>가격 *</label>
+            <input type="number" value={price} onChange={e => setPrice(e.target.value)} style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4 }} disabled={loading} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>간단 설명 *</label>
+            <input type="text" value={shortDescription} onChange={e => setShortDescription(e.target.value)} style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4 }} disabled={loading} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>상세 설명 *</label>
+            <textarea value={landingPageDescription} onChange={e => setLandingPageDescription(e.target.value)} style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4, minHeight: 80 }} disabled={loading} />
+          </div>
+          {error && <div style={{ color: 'red', marginBottom: 16 }}>{error}</div>}
+          <button type="submit" disabled={loading} style={{ background: '#1976d2', color: '#fff', padding: '10px 24px', border: 'none', borderRadius: 4, fontWeight: 'bold', cursor: 'pointer', fontSize: 16 }}>
+            설명 수정
+          </button>
+        </form>
+      )}
+      {/* 이미지 목록 및 업로드/삭제 */}
+      <div style={{ background: '#fff', padding: 24, borderRadius: 8, border: '1px solid #ddd' }}>
+        <h2 style={{ marginBottom: 16 }}>상품 이미지</h2>
+        {imageLoading ? (
+          <div>이미지 목록을 불러오는 중...</div>
+        ) : imageError ? (
+          <div style={{ color: 'red', marginBottom: 16 }}>{imageError}</div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
+            {images.map(img => (
+              <div key={img.id} style={{ position: 'relative', width: 100, height: 100, border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', background: '#fafafa' }}>
+                <img src={img.imageUrl} alt="상품 이미지" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button
+                  onClick={() => handleImageDelete(img.id)}
+                  style={{ position: 'absolute', top: 4, right: 4, background: '#c62828', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 12, cursor: 'pointer' }}
+                  disabled={uploading}
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <label style={{ display: 'inline-block', background: '#1976d2', color: '#fff', padding: '8px 18px', borderRadius: 4, fontWeight: 'bold', cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+          이미지 추가
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
+        </label>
+        {imageError && <div style={{ color: 'red', marginTop: 12 }}>{imageError}</div>}
+      </div>
+    </div>
+  );
+};
+
+export default ItemEdit; 
