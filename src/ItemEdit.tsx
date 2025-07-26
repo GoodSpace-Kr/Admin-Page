@@ -9,6 +9,7 @@ interface ItemInfo {
   shortDescription: string;
   landingPageDescription: string;
   imageUrls?: string[];
+  status: 'PRIVATE' | 'PUBLIC';
 }
 
 interface ItemImageInfo {
@@ -23,6 +24,7 @@ const ItemEdit: React.FC = () => {
   const [price, setPrice] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [landingPageDescription, setLandingPageDescription] = useState('');
+  const [status, setStatus] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [images, setImages] = useState<ItemImageInfo[]>([]);
@@ -52,6 +54,7 @@ const ItemEdit: React.FC = () => {
       setPrice(String(item.price));
       setShortDescription(item.shortDescription);
       setLandingPageDescription(item.landingPageDescription);
+      setStatus(item.status);
     } catch (err: any) {
       setError('상품 정보를 불러오지 못했습니다.');
     } finally {
@@ -93,6 +96,7 @@ const ItemEdit: React.FC = () => {
         price: Number(price),
         shortDescription: shortDescription.trim(),
         landingPageDescription: landingPageDescription.trim(),
+        status,
       });
       alert('설명 수정이 완료되었습니다!');
       window.location.reload();
@@ -162,15 +166,42 @@ const ItemEdit: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
-      {/* 돌아가기 버튼 */}
-      <button
-        onClick={() => navigate(`/client/${clientId}/items`)}
-        style={{ marginBottom: 20, background: '#666', color: '#fff', padding: '8px 18px', border: 'none', borderRadius: 4, fontWeight: 'bold', cursor: 'pointer' }}
-      >
-        ← 돌아가기
-      </button>
-      <h1>상품 수정</h1>
+    <div>
+      {/* 고정 헤더 */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        borderBottom: '1px solid #ddd',
+        padding: '16px 24px',
+        zIndex: 1000,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#333' }}>상품 수정</h1>
+        <button
+          onClick={() => navigate(`/client/${clientId}/items`)}
+          style={{ 
+            background: '#666', 
+            color: '#fff', 
+            padding: '10px 20px', 
+            border: 'none', 
+            borderRadius: 4, 
+            fontWeight: 'bold', 
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          목록으로 돌아가기
+        </button>
+      </div>
+      
+      {/* 메인 컨텐츠 */}
+      <div style={{ maxWidth: 600, margin: '80px auto 40px', padding: '0 24px' }}>
       {loading ? (
         <div>상품 정보를 불러오는 중...</div>
       ) : (
@@ -191,6 +222,27 @@ const ItemEdit: React.FC = () => {
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>상세 설명 *</label>
             <textarea value={landingPageDescription} onChange={e => setLandingPageDescription(e.target.value)} style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4, minHeight: 80 }} disabled={loading} />
           </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>상태 *</label>
+            <select
+              value={status}
+              onChange={(e) => {
+                const newStatus = e.target.value as 'PRIVATE' | 'PUBLIC';
+                const statusText = newStatus === 'PRIVATE' ? '비공개' : '공개';
+                if (window.confirm(`정말 "${statusText}"로 수정하시겠습니까?`)) {
+                  setStatus(newStatus);
+                } else {
+                  // 취소 시 원래 값으로 되돌리기
+                  e.target.value = status;
+                }
+              }}
+              style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4 }}
+              disabled={loading}
+            >
+              <option value="PRIVATE">비공개</option>
+              <option value="PUBLIC">공개</option>
+            </select>
+          </div>
           {error && <div style={{ color: 'red', marginBottom: 16 }}>{error}</div>}
           <button type="submit" disabled={loading} style={{ background: '#1976d2', color: '#fff', padding: '10px 24px', border: 'none', borderRadius: 4, fontWeight: 'bold', cursor: 'pointer', fontSize: 16 }}>
             설명 수정
@@ -208,7 +260,28 @@ const ItemEdit: React.FC = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
             {images.map(img => (
               <div key={img.id} style={{ position: 'relative', width: 100, height: 100, border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', background: '#fafafa' }}>
-                <img src={img.imageUrl} alt="상품 이미지" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img 
+                  src={`${process.env.REACT_APP_API_URL}${img.imageUrl.startsWith('/') ? img.imageUrl : '/' + img.imageUrl}`} 
+                  alt="상품 이미지" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.setAttribute('style', 'display: flex');
+                  }}
+                />
+                <div style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  backgroundColor: '#f0f0f0',
+                  display: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  color: '#999'
+                }}>
+                  이미지 로드 실패
+                </div>
                 <button
                   onClick={() => handleImageDelete(img.id)}
                   style={{ position: 'absolute', top: 4, right: 4, background: '#c62828', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 12, cursor: 'pointer' }}
@@ -225,6 +298,7 @@ const ItemEdit: React.FC = () => {
           <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
         </label>
         {imageError && <div style={{ color: 'red', marginTop: 12 }}>{imageError}</div>}
+      </div>
       </div>
     </div>
   );

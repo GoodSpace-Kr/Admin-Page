@@ -9,6 +9,7 @@ const ItemAdd: React.FC = () => {
   const [price, setPrice] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [landingPageDescription, setLandingPageDescription] = useState('');
+  const [status, setStatus] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
   const [images, setImages] = useState<(File | null)[]>([null]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -118,6 +119,7 @@ const ItemAdd: React.FC = () => {
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>상세 설명 *</label>
           <textarea value={landingPageDescription} onChange={e => setLandingPageDescription(e.target.value)} style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4, minHeight: 80 }} disabled={loading} />
         </div>
+
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>상품 이미지 (여러 장 순차 추가)</label>
           {images.map((file, idx) => (

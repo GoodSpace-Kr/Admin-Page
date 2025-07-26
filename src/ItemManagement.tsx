@@ -9,6 +9,7 @@ interface ItemInfo {
   shortDescription: string;
   landingPageDescription: string;
   imageUrls: string[];
+  status: 'PRIVATE' | 'PUBLIC';
 }
 
 interface ClientDetail {
@@ -18,6 +19,7 @@ interface ClientDetail {
   backgroundImageUrl: string;
   introduction: string;
   clientType: string;
+  status: 'PRIVATE' | 'PUBLIC';
 }
 
 const ItemManagement: React.FC = () => {
@@ -81,6 +83,28 @@ const ItemManagement: React.FC = () => {
     navigate(`/client/${clientId}/items/add`);
   };
 
+  const getStatusBadge = (status: 'PRIVATE' | 'PUBLIC') => {
+    const statusColors = {
+      'PRIVATE': { bg: '#ffebee', color: '#c62828', text: '비공개' },
+      'PUBLIC': { bg: '#e8f5e8', color: '#2e7d32', text: '공개' }
+    };
+
+    const style = statusColors[status];
+
+    return (
+      <span style={{
+        padding: '4px 8px',
+        borderRadius: '12px',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        backgroundColor: style.bg,
+        color: style.color
+      }}>
+        {style.text}
+      </span>
+    );
+  };
+
   return (
     <div style={{ maxWidth: 900, margin: '40px auto', padding: 24 }}>
       {/* 돌아가기 버튼 */}
@@ -123,6 +147,7 @@ const ItemManagement: React.FC = () => {
               <th style={{ padding: 10, border: '1px solid #ddd' }}>ID</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>이름</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>가격</th>
+              <th style={{ padding: 10, border: '1px solid #ddd' }}>상태</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>간단 설명</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>상세 설명</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>이미지</th>
@@ -131,20 +156,104 @@ const ItemManagement: React.FC = () => {
           </thead>
           <tbody>
             {items.map(item => (
-              <tr key={item.id}>
+              <tr 
+                key={item.id}
+                onClick={() => handleEdit(item.id)}
+                style={{ 
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '';
+                }}
+              >
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.id}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.name}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.price.toLocaleString()}원</td>
+                <td style={{ padding: 10, border: '1px solid #ddd' }}>{getStatusBadge(item.status)}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.shortDescription}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.landingPageDescription}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>
                   {item.imageUrls && item.imageUrls.length > 0 ? (
-                    <img src={item.imageUrls[0]} alt="상품 이미지" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
-                  ) : '없음'}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>
+                      {item.imageUrls.map((imageUrl, index) => {
+                        const cleanUrl = imageUrl.startsWith('/') 
+                          ? imageUrl.substring(1) 
+                          : imageUrl;
+                        const fullImageUrl = `${process.env.REACT_APP_API_URL}/${cleanUrl}`;
+                        return (
+                          <div key={index} style={{ position: 'relative' }}>
+                            <img 
+                              src={fullImageUrl}
+                              alt={`상품 이미지 ${index + 1}`}
+                              style={{ 
+                                width: 50, 
+                                height: 50, 
+                                objectFit: 'cover', 
+                                borderRadius: 4,
+                                border: '1px solid #ddd'
+                              }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            {item.imageUrls.length > 1 && (
+                              <div style={{
+                                position: 'absolute',
+                                top: -4,
+                                right: -4,
+                                backgroundColor: '#666',
+                                color: '#fff',
+                                fontSize: '10px',
+                                padding: '2px 4px',
+                                borderRadius: '8px',
+                                minWidth: '16px',
+                                textAlign: 'center'
+                              }}>
+                                {index + 1}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ 
+                      width: 60, 
+                      height: 60, 
+                      backgroundColor: '#f0f0f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      color: '#999',
+                      borderRadius: 6
+                    }}>
+                      없음
+                    </div>
+                  )}
                 </td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>
-                  <button onClick={() => handleEdit(item.id)} style={{ marginRight: 8, background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer' }}>수정</button>
-                  <button onClick={() => handleDelete(item.id)} style={{ background: '#c62828', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer' }}>삭제</button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }} 
+                    style={{ 
+                      background: '#c62828', 
+                      color: '#fff', 
+                      border: 'none', 
+                      borderRadius: 4, 
+                      padding: '6px 12px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    삭제
+                  </button>
                 </td>
               </tr>
             ))}
