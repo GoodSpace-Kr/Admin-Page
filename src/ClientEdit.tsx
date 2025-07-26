@@ -9,6 +9,7 @@ interface ClientDetail {
   backgroundImageUrl: string;
   introduction: string;
   clientType: 'CREATOR' | 'INFLUENCER';
+  status: 'PRIVATE' | 'PUBLIC';
 }
 
 const ClientEdit: React.FC = () => {
@@ -26,6 +27,7 @@ const ClientEdit: React.FC = () => {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   const [introduction, setIntroduction] = useState('');
   const [clientType, setClientType] = useState<'CREATOR' | 'INFLUENCER'>('CREATOR');
+  const [status, setStatus] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
 
   useEffect(() => {
     if (!clientId) return;
@@ -45,6 +47,7 @@ const ClientEdit: React.FC = () => {
       setBackgroundImageUrl(data.backgroundImageUrl);
       setIntroduction(data.introduction);
       setClientType(data.clientType);
+      setStatus(data.status);
     } catch (err: any) {
       setError('클라이언트 정보를 불러오지 못했습니다.');
     } finally {
@@ -111,6 +114,7 @@ const ClientEdit: React.FC = () => {
         encodedBackgroundImage,
         introduction: introduction.trim(),
         clientType,
+        status,
         profileUpdated,
         backgroundUpdated
       };
@@ -129,9 +133,23 @@ const ClientEdit: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: 800, margin: '50px auto', padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-        <h1>클라이언트 정보 수정</h1>
+    <div>
+      {/* 고정 헤더 */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        borderBottom: '1px solid #ddd',
+        padding: '16px 24px',
+        zIndex: 1000,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#333' }}>클라이언트 정보 수정</h1>
         <button 
           onClick={handleBack}
           style={{ 
@@ -147,6 +165,9 @@ const ClientEdit: React.FC = () => {
           목록으로 돌아가기
         </button>
       </div>
+      
+      {/* 메인 컨텐츠 */}
+      <div style={{ maxWidth: 800, margin: '80px auto 120px', padding: '0 24px' }}>
       {error && (
         <div style={{ color: 'red', marginBottom: 16, padding: 12, backgroundColor: '#ffe8e8', borderRadius: 4 }}>
           {error}
@@ -179,6 +200,29 @@ const ClientEdit: React.FC = () => {
           >
             <option value="CREATOR">CREATOR</option>
             <option value="INFLUENCER">INFLUENCER</option>
+          </select>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+            상태 *
+          </label>
+          <select
+            value={status}
+            onChange={(e) => {
+              const newStatus = e.target.value as 'PRIVATE' | 'PUBLIC';
+              const statusText = newStatus === 'PRIVATE' ? '비공개' : '공개';
+              if (window.confirm(`정말 "${statusText}"로 수정하시겠습니까?`)) {
+                setStatus(newStatus);
+              } else {
+                // 취소 시 원래 값으로 되돌리기
+                e.target.value = status;
+              }
+            }}
+            style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4 }}
+            disabled={loading}
+          >
+            <option value="PRIVATE">비공개</option>
+            <option value="PUBLIC">공개</option>
           </select>
         </div>
         <div style={{ marginBottom: 16 }}>
@@ -237,24 +281,42 @@ const ClientEdit: React.FC = () => {
             disabled={loading}
           />
         </div>
+      </form>
+      
+      {/* 고정 Footer */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        borderTop: '1px solid #ddd',
+        padding: '16px 24px',
+        zIndex: 1000,
+        boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        justifyContent: 'center'
+      }}>
         <button
           type="submit"
+          onClick={handleSubmit}
           style={{
-            width: '100%',
-            padding: '15px',
+            padding: '15px 40px',
             background: '#1976d2',
             color: '#fff',
             border: 'none',
             borderRadius: 4,
             cursor: 'pointer',
             fontSize: 16,
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            minWidth: '200px'
           }}
           disabled={loading}
         >
           {loading ? '수정 중...' : '클라이언트 정보 수정'}
         </button>
-      </form>
+      </div>
+      </div>
     </div>
   );
 };

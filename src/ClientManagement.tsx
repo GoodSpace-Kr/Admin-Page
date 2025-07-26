@@ -9,6 +9,7 @@ interface ClientInfoDto {
   backgroundImageUrl: string; // 서버에서 받을 때는 URL
   introduction: string;
   clientType: string;
+  status: 'PRIVATE' | 'PUBLIC';
 }
 
 const ClientManagement: React.FC = () => {
@@ -53,6 +54,28 @@ const ClientManagement: React.FC = () => {
     };
 
     const style = typeColors[clientType] || { bg: '#f5f5f5', color: '#666', text: clientType };
+
+    return (
+      <span style={{
+        padding: '4px 8px',
+        borderRadius: '12px',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        backgroundColor: style.bg,
+        color: style.color
+      }}>
+        {style.text}
+      </span>
+    );
+  };
+
+  const getStatusBadge = (status: 'PRIVATE' | 'PUBLIC') => {
+    const statusColors = {
+      'PRIVATE': { bg: '#ffebee', color: '#c62828', text: '비공개' },
+      'PUBLIC': { bg: '#e8f5e8', color: '#2e7d32', text: '공개' }
+    };
+
+    const style = statusColors[status];
 
     return (
       <span style={{
@@ -132,7 +155,7 @@ const ClientManagement: React.FC = () => {
       }}>
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: '1fr 2fr 1fr 3fr',
+          gridTemplateColumns: '1fr 1.5fr 1fr 1fr 2fr',
           padding: '16px',
           backgroundColor: '#f5f5f5',
           fontWeight: 'bold',
@@ -140,6 +163,7 @@ const ClientManagement: React.FC = () => {
         }}>
           <div>이름</div>
           <div>클라이언트 타입</div>
+          <div>상태</div>
           <div>프로필 이미지</div>
           <div>소개</div>
         </div>
@@ -158,7 +182,7 @@ const ClientManagement: React.FC = () => {
               onClick={() => client.id && navigate(`/client/edit/${client.id}`)}
               style={{ 
                 display: 'grid', 
-                gridTemplateColumns: '1fr 2fr 1fr 3fr',
+                gridTemplateColumns: '1fr 1.5fr 1fr 1fr 2fr',
                 padding: '16px',
                 borderBottom: '1px solid #eee',
                 alignItems: 'center',
@@ -176,6 +200,7 @@ const ClientManagement: React.FC = () => {
             >
               <div style={{ fontWeight: 'bold', zIndex: 1, pointerEvents: 'none' }}>{client.name || '-'}</div>
               <div style={{ zIndex: 1, pointerEvents: 'none' }}>{getClientTypeBadge(client.clientType)}</div>
+              <div style={{ zIndex: 1, pointerEvents: 'none' }}>{getStatusBadge(client.status)}</div>
               <div style={{ zIndex: 1, pointerEvents: 'none' }}>
                 {client.profileImageUrl ? (
                   (() => {
