@@ -324,7 +324,6 @@ const ItemEdit: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
             {Array.isArray(images) && images
-              .filter(img => img.imageUrl !== titleImageUrl) // 타이틀 이미지 제외
               .map(img => (
               <div key={img.id} style={{ position: 'relative', width: 100, height: 100, border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', background: '#fafafa' }}>
                 <img 

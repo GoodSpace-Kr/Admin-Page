@@ -214,10 +214,9 @@ const ItemManagement: React.FC = () => {
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.shortDescription}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.landingPageDescription}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>
-                  {item.imageUrls && item.imageUrls.filter(imageUrl => imageUrl !== item.titleImageUrl).length > 0 ? (
+                  {item.imageUrls && item.imageUrls.length > 0 ? (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>
                       {item.imageUrls
-                        .filter(imageUrl => imageUrl !== item.titleImageUrl) // 타이틀 이미지 제외
                         .map((imageUrl, index) => {
                         const cleanUrl = imageUrl.startsWith('/') 
                           ? imageUrl.substring(1) 
@@ -240,7 +239,7 @@ const ItemManagement: React.FC = () => {
                                 target.style.display = 'none';
                               }}
                             />
-                            {item.imageUrls.filter(imageUrl => imageUrl !== item.titleImageUrl).length > 1 && (
+                            {item.imageUrls.length > 1 && (
                               <div style={{
                                 position: 'absolute',
                                 top: -4,
