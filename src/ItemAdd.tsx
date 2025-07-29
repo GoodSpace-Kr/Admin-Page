@@ -9,8 +9,8 @@ const ItemAdd: React.FC = () => {
   const [price, setPrice] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [landingPageDescription, setLandingPageDescription] = useState('');
-  const [status, setStatus] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
   const [images, setImages] = useState<(File | null)[]>([null]);
+  const [titleImage, setTitleImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,6 +29,10 @@ const ItemAdd: React.FC = () => {
 
   const handleRemoveImage = (idx: number) => {
     setImages(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleTitleImageChange = (file: File | null) => {
+    setTitleImage(file);
   };
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -57,14 +61,6 @@ const ItemAdd: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      // 1. 상품 등록
-      const res = await api.post('/admin/item', {
-        clientId: Number(clientId),
-        name: name.trim(),
-        price: Number(price),
-        shortDescription: shortDescription.trim(),
-        landingPageDescription: landingPageDescription.trim(),
-      });
       // 2. 상품 등록 성공 시, 상품 목록을 다시 불러서 방금 등록한 상품의 id를 찾는다
       const itemsRes = await api.get('/admin/item', { params: { clientId } });
       const items = itemsRes.data as any[];
@@ -79,7 +75,17 @@ const ItemAdd: React.FC = () => {
         setLoading(false);
         return;
       }
-      // 3. 이미지가 있으면 순차적으로 업로드
+      // 3. 타이틀 이미지가 있으면 업로드
+      if (titleImage) {
+        const titleImageBase64 = await fileToBase64(titleImage);
+        await api.post('/admin/item/image/title', {
+          clientId: Number(clientId),
+          itemId: newItem.id,
+          encodedImage: titleImageBase64,
+        });
+      }
+
+      // 4. 일반 이미지가 있으면 순차적으로 업로드
       for (const file of images) {
         if (file) {
           const base64 = await fileToBase64(file);
@@ -118,6 +124,34 @@ const ItemAdd: React.FC = () => {
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>상세 설명 *</label>
           <textarea value={landingPageDescription} onChange={e => setLandingPageDescription(e.target.value)} style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4, minHeight: 80 }} disabled={loading} />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>타이틀 이미지 (선택사항)</label>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+            <input
+              type="file"
+              accept="image/*"
+              disabled={loading}
+              onChange={e => handleTitleImageChange(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+              style={{ flex: 1 }}
+            />
+            {titleImage && (
+              <button
+                type="button"
+                onClick={() => handleTitleImageChange(null)}
+                style={{ marginLeft: 8, background: '#c62828', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer' }}
+                disabled={loading}
+              >
+                삭제
+              </button>
+            )}
+          </div>
+          {titleImage && (
+            <div style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
+              선택된 파일: {titleImage.name}
+            </div>
+          )}
         </div>
 
         <div style={{ marginBottom: 16 }}>

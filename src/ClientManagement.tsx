@@ -174,7 +174,7 @@ const ClientManagement: React.FC = () => {
             ? client.backgroundImageUrl.substring(1)
             : client.backgroundImageUrl;
           const bgFullUrl = client.backgroundImageUrl
-            ? `${process.env.REACT_APP_API_URL}/${cleanBgUrl}`
+            ? `${process.env.REACT_APP_API_URL}/${cleanBgUrl}?cache=${Date.now()}`
             : undefined;
 
           return (
@@ -210,7 +210,7 @@ const ClientManagement: React.FC = () => {
                     const fullImageUrl = `${process.env.REACT_APP_API_URL}/${cleanUrl}`;
                     return (
                       <img 
-                        src={fullImageUrl}
+                        src={`${fullImageUrl}?cache=${Date.now()}`}
                         alt="프로필" 
                         style={{ 
                           width: '40px', 

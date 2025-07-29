@@ -10,6 +10,7 @@ interface ItemInfo {
   landingPageDescription: string;
   imageUrls: string[];
   status: 'PRIVATE' | 'PUBLIC';
+  titleImageUrl?: string;
 }
 
 interface ClientDetail {
@@ -73,7 +74,8 @@ const ItemManagement: React.FC = () => {
         data: { clientId: Number(clientId), itemId },
       } as any);
       alert('삭제가 완료되었습니다!');
-      window.location.reload();
+      // 페이지 새로고침 대신 상품 목록을 다시 불러옴
+      fetchItems();
     } catch {
       alert('삭제 실패');
     }
@@ -121,7 +123,7 @@ const ItemManagement: React.FC = () => {
         ) : client ? (
           <>
             <img
-              src={client.profileImageUrl}
+              src={`${process.env.REACT_APP_API_URL}${client.profileImageUrl.startsWith('/') ? client.profileImageUrl : '/' + client.profileImageUrl}?cache=${Date.now()}`}
               alt="프로필"
               style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', marginRight: 20, border: '1px solid #ddd' }}
               onError={e => (e.currentTarget.style.display = 'none')}
@@ -148,6 +150,7 @@ const ItemManagement: React.FC = () => {
               <th style={{ padding: 10, border: '1px solid #ddd' }}>이름</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>가격</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>상태</th>
+              <th style={{ padding: 10, border: '1px solid #ddd' }}>타이틀 이미지</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>간단 설명</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>상세 설명</th>
               <th style={{ padding: 10, border: '1px solid #ddd' }}>이미지</th>
@@ -174,12 +177,47 @@ const ItemManagement: React.FC = () => {
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.name}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.price.toLocaleString()}원</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{getStatusBadge(item.status)}</td>
+                <td style={{ padding: 10, border: '1px solid #ddd' }}>
+                  {item.titleImageUrl ? (
+                    <img 
+                      src={`${process.env.REACT_APP_API_URL}${item.titleImageUrl.startsWith('/') ? item.titleImageUrl : '/' + item.titleImageUrl}?cache=${Date.now()}`}
+                      alt="타이틀 이미지"
+                      style={{ 
+                        width: 80, 
+                        height: 50, 
+                        objectFit: 'cover', 
+                        borderRadius: 4,
+                        border: '1px solid #ddd'
+                      }}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.setAttribute('style', 'display: flex');
+                      }}
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: 80, 
+                      height: 50, 
+                      backgroundColor: '#f0f0f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      color: '#999',
+                      borderRadius: 4
+                    }}>
+                      없음
+                    </div>
+                  )}
+                </td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.shortDescription}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.landingPageDescription}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>
                   {item.imageUrls && item.imageUrls.length > 0 ? (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>
-                      {item.imageUrls.map((imageUrl, index) => {
+                      {item.imageUrls
+                        .map((imageUrl, index) => {
                         const cleanUrl = imageUrl.startsWith('/') 
                           ? imageUrl.substring(1) 
                           : imageUrl;
@@ -187,7 +225,7 @@ const ItemManagement: React.FC = () => {
                         return (
                           <div key={index} style={{ position: 'relative' }}>
                             <img 
-                              src={fullImageUrl}
+                              src={`${fullImageUrl}?cache=${Date.now()}`}
                               alt={`상품 이미지 ${index + 1}`}
                               style={{ 
                                 width: 50, 

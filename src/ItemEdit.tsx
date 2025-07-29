@@ -17,6 +17,11 @@ interface ItemImageInfo {
   imageUrl: string;
 }
 
+interface TotalItemImageResponse {
+  titleImageUrl: string | null;
+  images: ItemImageInfo[];
+}
+
 const ItemEdit: React.FC = () => {
   const { clientId, itemId } = useParams<{ clientId: string; itemId: string }>();
   const navigate = useNavigate();
@@ -31,6 +36,13 @@ const ItemEdit: React.FC = () => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [imageCacheKey, setImageCacheKey] = useState(0);
+  
+  // 타이틀 이미지 관련 상태
+  const [titleImageUrl, setTitleImageUrl] = useState('');
+  const [titleImageLoading, setTitleImageLoading] = useState(false);
+  const [titleImageError, setTitleImageError] = useState('');
+  const [titleImageCacheKey, setTitleImageCacheKey] = useState(0);
 
   useEffect(() => {
     fetchItem();
@@ -55,6 +67,7 @@ const ItemEdit: React.FC = () => {
       setShortDescription(item.shortDescription);
       setLandingPageDescription(item.landingPageDescription);
       setStatus(item.status);
+      // 타이틀 이미지는 fetchImages에서 처리하므로 여기서는 제거
     } catch (err: any) {
       setError('상품 정보를 불러오지 못했습니다.');
     } finally {
@@ -67,10 +80,15 @@ const ItemEdit: React.FC = () => {
     setImageLoading(true);
     setImageError('');
     try {
-      const res = await api.get<ItemImageInfo[]>(`/admin/item/image`, { params: { itemId } });
-      setImages(res.data);
+      const res = await api.get<TotalItemImageResponse>(`/admin/item/image`, { params: { itemId } });
+      // 새로운 API 응답 구조에 맞게 처리
+      const responseData = res.data;
+      setImages(Array.isArray(responseData.images) ? responseData.images : []);
+      setTitleImageUrl(responseData.titleImageUrl || '');
     } catch (err: any) {
       setImageError('이미지 목록을 불러오지 못했습니다.');
+      setImages([]); // 에러 시 빈 배열로 설정
+      setTitleImageUrl(''); // 에러 시 타이틀 이미지도 초기화
     } finally {
       setImageLoading(false);
     }
@@ -99,7 +117,8 @@ const ItemEdit: React.FC = () => {
         status,
       });
       alert('설명 수정이 완료되었습니다!');
-      window.location.reload();
+      // 페이지 새로고침 대신 상품 정보를 다시 불러옴
+      fetchItem();
     } catch (err: any) {
       setError(err.response?.data?.message || '설명 수정에 실패했습니다.');
     } finally {
@@ -124,7 +143,10 @@ const ItemEdit: React.FC = () => {
         encodedImage: base64,
       });
       alert('이미지 업로드가 완료되었습니다!');
-      window.location.reload();
+      // 캐시 무효화를 위해 캐시 키 업데이트
+      setImageCacheKey(prev => prev + 1);
+      // 페이지 새로고침 대신 이미지 목록을 다시 불러옴
+      fetchImages();
     } catch (err: any) {
       setImageError(err.response?.data?.message || '이미지 업로드에 실패했습니다.');
     } finally {
@@ -144,11 +166,54 @@ const ItemEdit: React.FC = () => {
         },
       } as any);
       alert('이미지 삭제가 완료되었습니다!');
-      window.location.reload();
+      // 캐시 무효화를 위해 캐시 키 업데이트
+      setImageCacheKey(prev => prev + 1);
+      // 페이지 새로고침 대신 이미지 목록을 다시 불러옴
+      fetchImages();
     } catch (err: any) {
       setImageError(err.response?.data?.message || '이미지 삭제에 실패했습니다.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleTitleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      setTitleImageError('이미지 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+    setTitleImageLoading(true);
+    setTitleImageError('');
+    try {
+      const base64 = await fileToBase64(file);
+      
+      if (titleImageUrl) {
+        // 기존 타이틀 이미지가 있으면 수정
+        await api.put('/admin/item/image/title', {
+          itemId: Number(itemId),
+          encodedImage: base64,
+        });
+      } else {
+        // 기존 타이틀 이미지가 없으면 새로 추가
+        await api.post('/admin/item/image/title', {
+          clientId: Number(clientId),
+          itemId: Number(itemId),
+          encodedImage: base64,
+        });
+      }
+      
+      alert('타이틀 이미지 업로드가 완료되었습니다!');
+      // 캐시 무효화를 위해 캐시 키 업데이트 (타이틀 이미지와 일반 이미지 모두)
+      setTitleImageCacheKey(prev => prev + 1);
+      setImageCacheKey(prev => prev + 1);
+      // 페이지 새로고침 대신 이미지 목록을 다시 불러옴
+      fetchImages();
+    } catch (err: any) {
+      setTitleImageError(err.response?.data?.message || '타이틀 이미지 업로드에 실패했습니다.');
+    } finally {
+      setTitleImageLoading(false);
     }
   };
 
@@ -258,10 +323,11 @@ const ItemEdit: React.FC = () => {
           <div style={{ color: 'red', marginBottom: 16 }}>{imageError}</div>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
-            {images.map(img => (
+            {Array.isArray(images) && images
+              .map(img => (
               <div key={img.id} style={{ position: 'relative', width: 100, height: 100, border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', background: '#fafafa' }}>
                 <img 
-                  src={`${process.env.REACT_APP_API_URL}${img.imageUrl.startsWith('/') ? img.imageUrl : '/' + img.imageUrl}`} 
+                  src={`${process.env.REACT_APP_API_URL}${img.imageUrl.startsWith('/') ? img.imageUrl : '/' + img.imageUrl}?cache=${imageCacheKey}`} 
                   alt="상품 이미지" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
@@ -298,6 +364,80 @@ const ItemEdit: React.FC = () => {
           <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
         </label>
         {imageError && <div style={{ color: 'red', marginTop: 12 }}>{imageError}</div>}
+      </div>
+      {/* 타이틀 이미지 관리 */}
+      <div style={{ background: '#fff', padding: 24, borderRadius: 8, border: '1px solid #ddd', marginTop: 16 }}>
+        <h2 style={{ marginBottom: 16 }}>타이틀 이미지</h2>
+        {titleImageLoading ? (
+          <div>타이틀 이미지를 불러오는 중...</div>
+        ) : titleImageError ? (
+          <div style={{ color: 'red', marginBottom: 16 }}>{titleImageError}</div>
+        ) : (
+          <div style={{ marginBottom: 16 }}>
+            {titleImageUrl ? (
+              <div style={{ position: 'relative', width: 200, height: 120, border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', background: '#fafafa', marginBottom: 16 }}>
+                <img 
+                  src={`${process.env.REACT_APP_API_URL}${titleImageUrl.startsWith('/') ? titleImageUrl : '/' + titleImageUrl}?cache=${titleImageCacheKey}`} 
+                  alt="타이틀 이미지" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.setAttribute('style', 'display: flex');
+                  }}
+                />
+                <div style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  backgroundColor: '#f0f0f0',
+                  display: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  color: '#999'
+                }}>
+                  이미지 로드 실패
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                width: 200, 
+                height: 120, 
+                border: '2px dashed #ddd', 
+                borderRadius: 8, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                backgroundColor: '#fafafa',
+                color: '#999',
+                fontSize: '14px',
+                marginBottom: 16
+              }}>
+                타이틀 이미지 없음
+              </div>
+            )}
+            <label style={{ 
+              display: 'inline-block', 
+              background: '#1976d2', 
+              color: '#fff', 
+              padding: '8px 18px', 
+              borderRadius: 4, 
+              fontWeight: 'bold', 
+              cursor: titleImageLoading ? 'not-allowed' : 'pointer', 
+              opacity: titleImageLoading ? 0.6 : 1 
+            }}>
+              {titleImageUrl ? '타이틀 이미지 변경' : '타이틀 이미지 추가'}
+              <input 
+                type="file" 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+                onChange={handleTitleImageUpload} 
+                disabled={titleImageLoading} 
+              />
+            </label>
+          </div>
+        )}
+        {titleImageError && <div style={{ color: 'red', marginTop: 12 }}>{titleImageError}</div>}
       </div>
       </div>
     </div>
