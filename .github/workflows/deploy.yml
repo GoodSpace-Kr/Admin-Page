@@ -1,0 +1,71 @@
+# .github/workflows/deploy.yml
+name: React CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  REACT_ECR_REPO: ${{ secrets.REACT_ECR_REPO }}  # e.g. 'react-app'
+
+jobs:
+  build_and_push:
+    name: Build & Push React to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build React App
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        run: |
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG=latest
+          docker build -t $REGISTRY/${{ env.REACT_ECR_REPO }}:$IMAGE_TAG .
+          docker push $REGISTRY/${{ env.REACT_ECR_REPO }}:$IMAGE_TAG
+
+  deploy:
+    name: Deploy React to EC2
+    needs: build_and_push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to EC2 via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd ~/your-app-directory
+            export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+            export AWS_REGION=${{ secrets.AWS_REGION }}
+            export REACT_ECR_REPO=${{ secrets.REACT_ECR_REPO }}
+            ./update.sh
+          EOF
