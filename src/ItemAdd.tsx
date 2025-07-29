@@ -9,7 +9,6 @@ const ItemAdd: React.FC = () => {
   const [price, setPrice] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [landingPageDescription, setLandingPageDescription] = useState('');
-  const [status, setStatus] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
   const [images, setImages] = useState<(File | null)[]>([null]);
   const [titleImage, setTitleImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,14 +61,6 @@ const ItemAdd: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      // 1. 상품 등록
-      const res = await api.post('/admin/item', {
-        clientId: Number(clientId),
-        name: name.trim(),
-        price: Number(price),
-        shortDescription: shortDescription.trim(),
-        landingPageDescription: landingPageDescription.trim(),
-      });
       // 2. 상품 등록 성공 시, 상품 목록을 다시 불러서 방금 등록한 상품의 id를 찾는다
       const itemsRes = await api.get('/admin/item', { params: { clientId } });
       const items = itemsRes.data as any[];
