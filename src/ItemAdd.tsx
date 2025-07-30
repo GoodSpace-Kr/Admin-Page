@@ -61,7 +61,16 @@ const ItemAdd: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      // 2. 상품 등록 성공 시, 상품 목록을 다시 불러서 방금 등록한 상품의 id를 찾는다
+      // 1. 상품 등록
+      await api.post('/admin/item', {
+        clientId: Number(clientId),
+        name: name.trim(),
+        price: Number(price),
+        shortDescription: shortDescription.trim(),
+        landingPageDescription: landingPageDescription.trim(),
+      });
+      
+      // 2. 상품 목록을 다시 조회해서 방금 등록한 상품의 ID를 찾기
       const itemsRes = await api.get('/admin/item', { params: { clientId } });
       const items = itemsRes.data as any[];
       const newItem = items.find((item: any) =>
@@ -70,11 +79,13 @@ const ItemAdd: React.FC = () => {
         item.shortDescription === shortDescription.trim() &&
         item.landingPageDescription === landingPageDescription.trim()
       );
-      if (!newItem) {
+      
+      if (!newItem || !newItem.id) {
         alert('상품 등록 후 상품 정보를 찾을 수 없습니다.');
         setLoading(false);
         return;
       }
+
       // 3. 타이틀 이미지가 있으면 업로드
       if (titleImage) {
         const titleImageBase64 = await fileToBase64(titleImage);
