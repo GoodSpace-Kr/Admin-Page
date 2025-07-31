@@ -9,6 +9,7 @@ interface ClientDetail {
   backgroundImageUrl: string;
   introduction: string;
   clientType: 'CREATOR' | 'INFLUENCER';
+  status: 'PUBLIC' | 'PRIVATE';
 }
 
 const ClientEdit: React.FC = () => {
@@ -26,6 +27,7 @@ const ClientEdit: React.FC = () => {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   const [introduction, setIntroduction] = useState('');
   const [clientType, setClientType] = useState<'CREATOR' | 'INFLUENCER'>('CREATOR');
+  const [status, setStatus] = useState<'PUBLIC' | 'PRIVATE'>('PRIVATE');
 
   useEffect(() => {
     if (!clientId) return;
@@ -45,6 +47,7 @@ const ClientEdit: React.FC = () => {
       setBackgroundImageUrl(data.backgroundImageUrl);
       setIntroduction(data.introduction);
       setClientType(data.clientType);
+      setStatus(data.status);
     } catch (err: any) {
       setError('클라이언트 정보를 불러오지 못했습니다.');
     } finally {
@@ -111,6 +114,7 @@ const ClientEdit: React.FC = () => {
         encodedBackgroundImage,
         introduction: introduction.trim(),
         clientType,
+        status,
         profileUpdated,
         backgroundUpdated
       };
@@ -179,6 +183,29 @@ const ClientEdit: React.FC = () => {
           >
             <option value="CREATOR">CREATOR</option>
             <option value="INFLUENCER">INFLUENCER</option>
+          </select>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+            상태 *
+          </label>
+          <select
+            value={status}
+            onChange={(e) => {
+              const newStatus = e.target.value as 'PUBLIC' | 'PRIVATE';
+              const statusText = newStatus === 'PRIVATE' ? '비공개' : '공개';
+              if (window.confirm(`정말 "${statusText}"로 수정하시겠습니까?`)) {
+                setStatus(newStatus);
+              } else {
+                // 취소 시 원래 값으로 되돌리기
+                e.target.value = status;
+              }
+            }}
+            style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 4 }}
+            disabled={loading}
+          >
+            <option value="PRIVATE">비공개</option>
+            <option value="PUBLIC">공개</option>
           </select>
         </div>
         <div style={{ marginBottom: 16 }}>
