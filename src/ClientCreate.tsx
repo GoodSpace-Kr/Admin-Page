@@ -2,14 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from './api';
 
-interface ClientRegistrationRequest {
-  name: string;
-  encodedProfileImage: string;
-  encodedBackgroundImage: string;
-  introduction: string;
-  clientType: 'CREATOR' | 'INFLUENCER';
-}
-
 const ClientCreate: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -37,20 +29,6 @@ const ClientCreate: React.FC = () => {
     }
   };
 
-  const convertImageToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Base64 데이터 URL에서 실제 Base64 부분만 추출
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -76,21 +54,21 @@ const ClientCreate: React.FC = () => {
     setLoading(true);
 
     try {
-      // 이미지를 Base64로 변환
-      const [profileBase64, backgroundBase64] = await Promise.all([
-        profileImage ? convertImageToBase64(profileImage) : '',
-        backgroundImage ? convertImageToBase64(backgroundImage) : ''
-      ]);
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('name', name.trim());
+      formData.append('introduction', introduction.trim());
+      formData.append('clientType', clientType);
+      
+      if (profileImage) {
+        formData.append('profileImage', profileImage);
+      }
+      if (backgroundImage) {
+        formData.append('backgroundImage', backgroundImage);
+      }
 
-      const requestData: ClientRegistrationRequest = {
-        name: name.trim(),
-        encodedProfileImage: profileBase64,
-        encodedBackgroundImage: backgroundBase64,
-        introduction: introduction.trim(),
-        clientType
-      };
-
-      await api.post('/admin/client', requestData);
+      await api.post('/admin/client', formData);
+      
       alert('클라이언트가 성공적으로 생성되었습니다!');
       navigate('/clients');
     } catch (err: any) {

@@ -136,12 +136,12 @@ const ItemEdit: React.FC = () => {
     setUploading(true);
     setImageError('');
     try {
-      const base64 = await fileToBase64(file);
-      await api.post('/admin/item/image', {
-        clientId: Number(clientId),
-        itemId: Number(itemId),
-        encodedImage: base64,
-      });
+      const formData = new FormData();
+      formData.append('clientId', clientId!);
+      formData.append('itemId', itemId!);
+      formData.append('image', file);
+      
+      await api.post('/admin/item/image', formData);
       alert('이미지 업로드가 완료되었습니다!');
       // 캐시 무효화를 위해 캐시 키 업데이트
       setImageCacheKey(prev => prev + 1);
@@ -187,21 +187,21 @@ const ItemEdit: React.FC = () => {
     setTitleImageLoading(true);
     setTitleImageError('');
     try {
-      const base64 = await fileToBase64(file);
-      
       if (titleImageUrl) {
         // 기존 타이틀 이미지가 있으면 수정
-        await api.put('/admin/item/image/title', {
-          itemId: Number(itemId),
-          encodedImage: base64,
-        });
+        const updateFormData = new FormData();
+        updateFormData.append('itemId', itemId!);
+        updateFormData.append('image', file);
+        
+        await api.put('/admin/item/image/title', updateFormData);
       } else {
         // 기존 타이틀 이미지가 없으면 새로 추가
-        await api.post('/admin/item/image/title', {
-          clientId: Number(clientId),
-          itemId: Number(itemId),
-          encodedImage: base64,
-        });
+        const createFormData = new FormData();
+        createFormData.append('clientId', clientId!);
+        createFormData.append('itemId', itemId!);
+        createFormData.append('image', file);
+        
+        await api.post('/admin/item/image/title', createFormData);
       }
       
       alert('타이틀 이미지 업로드가 완료되었습니다!');
@@ -217,18 +217,7 @@ const ItemEdit: React.FC = () => {
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
+
 
   return (
     <div>
