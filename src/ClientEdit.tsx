@@ -66,19 +66,6 @@ const ClientEdit: React.FC = () => {
     }
   };
 
-  const convertImageToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) {
@@ -96,29 +83,23 @@ const ClientEdit: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      // 이미지가 새로 업로드된 경우만 Base64로 변환, 아니면 기존 URL 유지
-      let encodedProfileImage = profileImageUrl;
-      let encodedBackgroundImage = backgroundImageUrl;
-      const profileUpdated = !!profileImage;
-      const backgroundUpdated = !!backgroundImage;
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('id', id.toString());
+      formData.append('name', name.trim());
+      formData.append('introduction', introduction.trim());
+      formData.append('clientType', clientType);
+      formData.append('status', status);
+      
       if (profileImage) {
-        encodedProfileImage = await convertImageToBase64(profileImage);
+        formData.append('profileImage', profileImage);
       }
       if (backgroundImage) {
-        encodedBackgroundImage = await convertImageToBase64(backgroundImage);
+        formData.append('backgroundImage', backgroundImage);
       }
-      const requestData = {
-        id,
-        name: name.trim(),
-        encodedProfileImage,
-        encodedBackgroundImage,
-        introduction: introduction.trim(),
-        clientType,
-        status,
-        profileUpdated,
-        backgroundUpdated
-      };
-      await api.put('/admin/client', requestData);
+
+      await api.put('/admin/client', formData);
+      
       alert('클라이언트 정보가 수정되었습니다!');
       navigate('/clients');
     } catch (err: any) {

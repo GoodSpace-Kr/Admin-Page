@@ -35,19 +35,6 @@ const ItemAdd: React.FC = () => {
     setTitleImage(file);
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId) {
@@ -61,7 +48,7 @@ const ItemAdd: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      // 1. 상품 등록
+      // 1. 상품 등록 (JSON 형식)
       await api.post('/admin/item', {
         clientId: Number(clientId),
         name: name.trim(),
@@ -86,25 +73,25 @@ const ItemAdd: React.FC = () => {
         return;
       }
 
-      // 3. 타이틀 이미지가 있으면 업로드
+      // 3. 타이틀 이미지가 있으면 업로드 (multipart/form-data)
       if (titleImage) {
-        const titleImageBase64 = await fileToBase64(titleImage);
-        await api.post('/admin/item/image/title', {
-          clientId: Number(clientId),
-          itemId: newItem.id,
-          encodedImage: titleImageBase64,
-        });
+        const titleImageFormData = new FormData();
+        titleImageFormData.append('clientId', clientId);
+        titleImageFormData.append('itemId', newItem.id.toString());
+        titleImageFormData.append('image', titleImage);
+        
+        await api.post('/admin/item/image/title', titleImageFormData);
       }
 
-      // 4. 일반 이미지가 있으면 순차적으로 업로드
+      // 4. 일반 이미지가 있으면 순차적으로 업로드 (multipart/form-data)
       for (const file of images) {
         if (file) {
-          const base64 = await fileToBase64(file);
-          await api.post('/admin/item/image', {
-            clientId: Number(clientId),
-            itemId: newItem.id,
-            encodedImage: base64,
-          });
+          const imageFormData = new FormData();
+          imageFormData.append('clientId', clientId);
+          imageFormData.append('itemId', newItem.id.toString());
+          imageFormData.append('image', file);
+          
+          await api.post('/admin/item/image', imageFormData);
         }
       }
       alert('상품이 성공적으로 추가되었습니다!');
