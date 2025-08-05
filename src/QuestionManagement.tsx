@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from './api';
 
@@ -33,6 +33,7 @@ const QuestionManagement: React.FC = () => {
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions, typeFilter, statusFilter, searchKeyword, searchType]);
 
   const fetchQuestions = async () => {
@@ -57,7 +58,7 @@ const QuestionManagement: React.FC = () => {
     navigate(`/question/${questionId}`);
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = questions;
 
     // 유형 필터 적용
@@ -97,7 +98,7 @@ const QuestionManagement: React.FC = () => {
     }
 
     setFilteredQuestions(filtered);
-  };
+  }, [questions, typeFilter, statusFilter, searchKeyword, searchType]);
 
 
 
