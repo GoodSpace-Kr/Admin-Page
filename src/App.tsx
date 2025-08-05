@@ -7,6 +7,9 @@ import ClientEdit from './ClientEdit';
 import ItemManagement from './ItemManagement';
 import ItemAdd from './ItemAdd';
 import ItemEdit from './ItemEdit';
+import QuestionManagement from './QuestionManagement';
+import QuestionCreate from './QuestionCreate';
+import QuestionDetail from './QuestionDetail';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 function App() {
@@ -44,6 +47,9 @@ function App() {
         <Route path="/client/:clientId/items" element={isLoggedIn ? <ItemManagement /> : <Navigate to="/login" />} />
         <Route path="/client/:clientId/items/add" element={isLoggedIn ? <ItemAdd /> : <Navigate to="/login" />} />
         <Route path="/client/:clientId/items/:itemId/edit" element={isLoggedIn ? <ItemEdit /> : <Navigate to="/login" />} />
+        <Route path="/questions" element={isLoggedIn ? <QuestionManagement /> : <Navigate to="/login" />} />
+        <Route path="/question/create" element={isLoggedIn ? <QuestionCreate /> : <Navigate to="/login" />} />
+        <Route path="/question/:questionId" element={isLoggedIn ? <QuestionDetail /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   );
