@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import api from './api';
 
 interface ItemInfo {
@@ -107,6 +109,43 @@ const ItemManagement: React.FC = () => {
     );
   };
 
+  const renderMarkdownDescription = (description: string, maxLength: number = 100) => {
+    if (!description) return '-';
+    
+    // 마크다운 텍스트를 제한 (마크다운 문법은 유지)
+    const truncatedText = description.length > maxLength ? description.substring(0, maxLength) + '...' : description;
+    
+    return (
+      <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={{
+            // 헤더 크기 제한
+            h1: ({children}) => <div style={{fontSize: '16px', fontWeight: 'bold', margin: '4px 0'}}>{children}</div>,
+            h2: ({children}) => <div style={{fontSize: '15px', fontWeight: 'bold', margin: '4px 0'}}>{children}</div>,
+            h3: ({children}) => <div style={{fontSize: '14px', fontWeight: 'bold', margin: '4px 0'}}>{children}</div>,
+            // 리스트 스타일 조정
+            ul: ({children}) => <div style={{margin: '4px 0', paddingLeft: '16px'}}>{children}</div>,
+            ol: ({children}) => <div style={{margin: '4px 0', paddingLeft: '16px'}}>{children}</div>,
+            li: ({children}) => <div style={{margin: '2px 0'}}>{children}</div>,
+            // 인용문 스타일
+            blockquote: ({children}) => <div style={{borderLeft: '3px solid #ddd', paddingLeft: '8px', margin: '4px 0', fontStyle: 'italic'}}>{children}</div>,
+            // 코드 스타일
+            code: ({children}) => <span style={{backgroundColor: '#f5f5f5', padding: '2px 4px', borderRadius: '3px', fontFamily: 'monospace', fontSize: '12px'}}>{children}</span>,
+            // 링크 스타일
+            a: ({children, href}) => <span style={{color: '#1976d2', textDecoration: 'underline'}}>{children}</span>,
+            // 이미지 숨김 (목록에서는 이미지 표시하지 않음)
+            img: () => null,
+            // 코드블록 스타일
+            pre: ({children}) => <div style={{backgroundColor: '#f5f5f5', padding: '4px', borderRadius: '3px', fontSize: '12px', fontFamily: 'monospace', margin: '4px 0'}}>{children}</div>
+          }}
+        >
+          {truncatedText}
+        </ReactMarkdown>
+      </div>
+    );
+  };
+
   return (
     <div style={{ maxWidth: 900, margin: '40px auto', padding: 24 }}>
       {/* 돌아가기 버튼 */}
@@ -211,8 +250,8 @@ const ItemManagement: React.FC = () => {
                     </div>
                   )}
                 </td>
-                <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.shortDescription}</td>
-                <td style={{ padding: 10, border: '1px solid #ddd' }}>{item.landingPageDescription}</td>
+                <td style={{ padding: 10, border: '1px solid #ddd' }}>{renderMarkdownDescription(item.shortDescription, 80)}</td>
+                <td style={{ padding: 10, border: '1px solid #ddd' }}>{renderMarkdownDescription(item.landingPageDescription, 120)}</td>
                 <td style={{ padding: 10, border: '1px solid #ddd' }}>
                   {item.imageUrls && item.imageUrls.length > 0 ? (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>

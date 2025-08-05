@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import api from './api';
 
 interface ClientInfoDto {
@@ -91,9 +93,43 @@ const ClientManagement: React.FC = () => {
     );
   };
 
-  const truncateText = (text: string, maxLength: number) => {
-    if (!text) return '-';
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+
+
+  const renderMarkdownIntroduction = (introduction: string) => {
+    if (!introduction) return '-';
+    
+    // 마크다운 텍스트를 100자로 제한 (마크다운 문법은 유지)
+    const truncatedText = introduction.length > 100 ? introduction.substring(0, 100) + '...' : introduction;
+    
+    return (
+      <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={{
+            // 헤더 크기 제한
+            h1: ({children}) => <div style={{fontSize: '16px', fontWeight: 'bold', margin: '4px 0'}}>{children}</div>,
+            h2: ({children}) => <div style={{fontSize: '15px', fontWeight: 'bold', margin: '4px 0'}}>{children}</div>,
+            h3: ({children}) => <div style={{fontSize: '14px', fontWeight: 'bold', margin: '4px 0'}}>{children}</div>,
+            // 리스트 스타일 조정
+            ul: ({children}) => <div style={{margin: '4px 0', paddingLeft: '16px'}}>{children}</div>,
+            ol: ({children}) => <div style={{margin: '4px 0', paddingLeft: '16px'}}>{children}</div>,
+            li: ({children}) => <div style={{margin: '2px 0'}}>{children}</div>,
+            // 인용문 스타일
+            blockquote: ({children}) => <div style={{borderLeft: '3px solid #ddd', paddingLeft: '8px', margin: '4px 0', fontStyle: 'italic'}}>{children}</div>,
+            // 코드 스타일
+            code: ({children}) => <span style={{backgroundColor: '#f5f5f5', padding: '2px 4px', borderRadius: '3px', fontFamily: 'monospace', fontSize: '12px'}}>{children}</span>,
+            // 링크 스타일
+            a: ({children, href}) => <span style={{color: '#1976d2', textDecoration: 'underline'}}>{children}</span>,
+            // 이미지 숨김 (목록에서는 이미지 표시하지 않음)
+            img: () => null,
+            // 코드블록 스타일
+            pre: ({children}) => <div style={{backgroundColor: '#f5f5f5', padding: '4px', borderRadius: '3px', fontSize: '12px', fontFamily: 'monospace', margin: '4px 0'}}>{children}</div>
+          }}
+        >
+          {truncatedText}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   if (loading) {
@@ -242,8 +278,8 @@ const ClientManagement: React.FC = () => {
                   없음
                 </div>
               </div>
-              <div style={{ fontSize: '14px', lineHeight: '1.4', zIndex: 1, pointerEvents: 'none' }}>
-                {truncateText(client.introduction, 100)}
+              <div style={{ zIndex: 1, pointerEvents: 'none' }}>
+                {renderMarkdownIntroduction(client.introduction)}
               </div>
               {/* 상품 관리하기 버튼 */}
               <button
