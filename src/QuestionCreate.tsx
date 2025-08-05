@@ -57,11 +57,11 @@ const QuestionCreate: React.FC = () => {
       }));
       
       // 파일들 추가
-      files.forEach((file, index) => {
+      files.forEach((file) => {
         formData.append('file', file);
       });
 
-      await api.post('/api/qna', formData);
+      await api.post('/qna', formData);
       
       alert('문의가 성공적으로 생성되었습니다!');
       navigate('/questions');
