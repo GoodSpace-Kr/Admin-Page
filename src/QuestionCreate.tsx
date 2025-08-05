@@ -73,18 +73,7 @@ const QuestionCreate: React.FC = () => {
     }
   };
 
-  const getTypeText = (type: string) => {
-    switch (type) {
-      case 'DELIVERY':
-        return '배송';
-      case 'ORDER':
-        return '주문';
-      case 'ITEM':
-        return '상품';
-      default:
-        return type;
-    }
-  };
+
 
   return (
     <div style={{ maxWidth: 800, margin: '50px auto', padding: 24 }}>

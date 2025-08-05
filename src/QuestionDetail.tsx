@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
 import api from './api';
@@ -52,14 +52,7 @@ const QuestionDetail: React.FC = () => {
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    if (questionId) {
-      fetchQuestionDetail();
-      fetchQuestionFiles();
-    }
-  }, [questionId]);
-
-  const fetchQuestionDetail = async () => {
+  const fetchQuestionDetail = useCallback(async () => {
     try {
       const response = await api.get<QuestionAndAnswerResponse>(`/admin/question/${questionId}`);
       setQuestionData(response.data);
@@ -74,9 +67,9 @@ const QuestionDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [questionId]);
 
-  const fetchQuestionFiles = async () => {
+  const fetchQuestionFiles = useCallback(async () => {
     setFileLoading(true);
     try {
       const response = await api.get(`/admin/question/${questionId}/file`, {
@@ -106,7 +99,14 @@ const QuestionDetail: React.FC = () => {
     } finally {
       setFileLoading(false);
     }
-  };
+  }, [questionId]);
+
+  useEffect(() => {
+    if (questionId) {
+      fetchQuestionDetail();
+      fetchQuestionFiles();
+    }
+  }, [questionId, fetchQuestionDetail, fetchQuestionFiles]);
 
   const handleBackToList = () => {
     navigate('/questions');
