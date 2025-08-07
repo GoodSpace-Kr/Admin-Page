@@ -10,6 +10,8 @@ import ItemEdit from './ItemEdit';
 import QuestionManagement from './QuestionManagement';
 import QuestionCreate from './QuestionCreate';
 import QuestionDetail from './QuestionDetail';
+import UserManagement from './UserManagement';
+import OrderManagement from './OrderManagement';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 function App() {
@@ -50,6 +52,8 @@ function App() {
         <Route path="/questions" element={isLoggedIn ? <QuestionManagement /> : <Navigate to="/login" />} />
         <Route path="/question/create" element={isLoggedIn ? <QuestionCreate /> : <Navigate to="/login" />} />
         <Route path="/question/:questionId" element={isLoggedIn ? <QuestionDetail /> : <Navigate to="/login" />} />
+        <Route path="/users" element={isLoggedIn ? <UserManagement /> : <Navigate to="/login" />} />
+        <Route path="/orders" element={isLoggedIn ? <OrderManagement /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   );
