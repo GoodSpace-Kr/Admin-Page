@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Create .env.production   # 👈 추가
+      - name: Create .env.production
         run: |
           echo "REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}" > .env.production
 
@@ -53,7 +53,6 @@ jobs:
     name: Deploy React to EC2 via SSH
     needs: build_and_push
     runs-on: ubuntu-latest
-
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1
@@ -69,14 +68,28 @@ jobs:
           script: |
             cd ~/good-space
             ./update-frontend.sh
+
+  notify:
+    name: Send Discord Notification
+    if: always()
+    needs:
+      - build_and_push
+      - deploy
+    runs-on: ubuntu-latest
+    steps:
       - name: Send Discord Notification
-        if: always()
         run: |
-          STATUS="${{ job.status }}"
-          if [ "$STATUS" = "success" ]; then
-            MSG="✅ 관리자 페이지 CI/CD 성공!"
+          BUILD_RESULT="${{ needs.build_and_push.result }}"
+          DEPLOY_RESULT="${{ needs.deploy.result }}"
+
+          if [ "$BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
+            MSG="✅ 관리자 페이지 CI/CD 전체 성공!"
+          elif [ "$BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" != "success" ]; then
+            MSG="⚠️ 빌드 성공, 배포 실패! <@&${{ secrets.DISCORD_ROLE_ID }}>"
+          elif [ "$BUILD_RESULT" != "success" ]; then
+            MSG="❌ 빌드 실패! <@&${{ secrets.DISCORD_ROLE_ID }}>"
           else
-            MSG="❌ 관리자 페이지 CI/CD 실패! <@&${{ secrets.DISCORD_ROLE_ID }}>"
+            MSG="⚠️ 알 수 없는 오류 발생! <@&${{ secrets.DISCORD_ROLE_ID }}>"
           fi
 
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
