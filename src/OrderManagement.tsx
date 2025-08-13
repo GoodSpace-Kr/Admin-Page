@@ -116,7 +116,7 @@ const OrderManagement: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedOrder, setSelectedOrder] = useState<OrderInfo | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     orderId: 0,
     recipient: '',
@@ -309,10 +309,6 @@ const OrderManagement: React.FC = () => {
 
   const handleShowPaymentDetail = (order: OrderInfo) => {
     setSelectedOrder(order);
-    setShowPaymentModal(true);
-  };
-
-  const handleShowEditForm = (order: OrderInfo) => {
     setEditForm({
       orderId: order.id,
       recipient: order.deliveryInfo?.recipient || '',
@@ -325,17 +321,20 @@ const OrderManagement: React.FC = () => {
       buyerTel: order.approveResult?.buyerTel || '',
       buyerEmail: order.approveResult?.buyerEmail || ''
     });
-    setShowEditModal(true);
+    setIsEditing(false);
+    setShowPaymentModal(true);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!selectedOrder) return;
+    
     try {
       const requestData = {
         orderId: editForm.orderId,
         approveResult: {
-          ...selectedOrder?.approveResult,
+          ...selectedOrder.approveResult,
           buyerName: editForm.buyerName,
           buyerTel: editForm.buyerTel,
           buyerEmail: editForm.buyerEmail
@@ -352,10 +351,33 @@ const OrderManagement: React.FC = () => {
 
       await api.put('/admin/order', requestData);
       alert('주문 정보가 수정되었습니다.');
-      setShowEditModal(false);
+      setIsEditing(false);
       fetchOrders();
     } catch (err: any) {
       alert(err.response?.data?.message || '주문 수정에 실패했습니다.');
+    }
+  };
+
+  const handleStartEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    // 원래 데이터로 복원
+    if (selectedOrder) {
+      setEditForm({
+        orderId: selectedOrder.id,
+        recipient: selectedOrder.deliveryInfo?.recipient || '',
+        contactNumber1: selectedOrder.deliveryInfo?.contactNumber1 || '',
+        contactNumber2: selectedOrder.deliveryInfo?.contactNumber2 || '',
+        postalCode: selectedOrder.deliveryInfo?.postalCode || '',
+        address: selectedOrder.deliveryInfo?.address || '',
+        detailedAddress: selectedOrder.deliveryInfo?.detailedAddress || '',
+        buyerName: selectedOrder.approveResult?.buyerName || '',
+        buyerTel: selectedOrder.approveResult?.buyerTel || '',
+        buyerEmail: selectedOrder.approveResult?.buyerEmail || ''
+      });
     }
   };
 
@@ -591,20 +613,6 @@ const OrderManagement: React.FC = () => {
                           결제정보
                         </button>
                         <button
-                          onClick={() => handleShowEditForm(order)}
-                          style={{
-                            padding: '4px 8px',
-                            background: '#28a745',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                            fontSize: 11
-                          }}
-                        >
-                          수정
-                        </button>
-                        <button
                           onClick={() => handleDeleteOrder(order.id)}
                           disabled={deleteLoading === order.id}
                           style={{
@@ -655,303 +663,338 @@ const OrderManagement: React.FC = () => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ margin: 0, color: '#333' }}>결제 정보 상세</h3>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 20,
-                  cursor: 'pointer',
-                  color: '#666'
-                }}
-              >
-                ×
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {!isEditing && (
+                  <button
+                    onClick={handleStartEdit}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#28a745',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 14
+                    }}
+                  >
+                    수정
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 20,
+                    cursor: 'pointer',
+                    color: '#666'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div>
-                <h4 style={{ marginBottom: 8, color: '#333' }}>기본 정보</h4>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>결제 상태:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.status || '정보 없음'}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>결제 방법:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.payMethod || '정보 없음'}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>결제 금액:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {formatPrice(selectedOrder.approveResult?.amount)}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>승인 번호:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.approveNo || '정보 없음'}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>TID:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.tid || '정보 없음'}
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 style={{ marginBottom: 8, color: '#333' }}>주문자 정보</h4>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>주문자명:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.buyerName || '정보 없음'}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>이메일:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.buyerEmail || '정보 없음'}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>연락처:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.buyerTel || '정보 없음'}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>결제일시:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.paidAt ? formatDate(selectedOrder.approveResult.paidAt) : '-'}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontWeight: 'bold' }}>상품명:</label>
-                  <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult?.goodsName || '정보 없음'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {selectedOrder.approveResult.card && (
-              <div style={{ marginTop: 16 }}>
-                <h4 style={{ marginBottom: 8, color: '#333' }}>카드 정보</h4>
+            {!isEditing ? (
+              // 읽기 전용 모드
+              <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ fontWeight: 'bold' }}>카드명:</label>
-                    <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                      {selectedOrder.approveResult.card?.cardName || '정보 없음'}
+                  <div>
+                    <h4 style={{ marginBottom: 8, color: '#333' }}>기본 정보</h4>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>결제 상태:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.status || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>결제 방법:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.payMethod || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>결제 금액:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {formatPrice(selectedOrder.approveResult?.amount)}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>승인 번호:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.approveNo || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>TID:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.tid || '정보 없음'}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ fontWeight: 'bold' }}>할부:</label>
-                    <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                      {selectedOrder.approveResult.card?.cardQuota || 0}개월
+                  
+                  <div>
+                    <h4 style={{ marginBottom: 8, color: '#333' }}>주문자 정보</h4>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>주문자명:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.buyerName || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>이메일:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.buyerEmail || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>연락처:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.buyerTel || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>결제일시:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.paidAt ? formatDate(selectedOrder.approveResult.paidAt) : '-'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>상품명:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.approveResult?.goodsName || '정보 없음'}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <h4 style={{ marginBottom: 8, color: '#333' }}>배송지 정보</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>수령인:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.deliveryInfo?.recipient || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>연락처 1:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.deliveryInfo?.contactNumber1 || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>연락처 2:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.deliveryInfo?.contactNumber2 || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>우편번호:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.deliveryInfo?.postalCode || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>주소:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.deliveryInfo?.address || '정보 없음'}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ fontWeight: 'bold' }}>상세주소:</label>
+                      <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                        {selectedOrder.deliveryInfo?.detailedAddress || '정보 없음'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedOrder.approveResult.card && (
+                  <div style={{ marginTop: 16 }}>
+                    <h4 style={{ marginBottom: 8, color: '#333' }}>카드 정보</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div style={{ marginBottom: 8 }}>
+                        <label style={{ fontWeight: 'bold' }}>카드명:</label>
+                        <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                          {selectedOrder.approveResult.card?.cardName || '정보 없음'}
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: 8 }}>
+                        <label style={{ fontWeight: 'bold' }}>할부:</label>
+                        <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+                          {selectedOrder.approveResult.card?.cardQuota || 0}개월
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              // 수정 모드
+              <form onSubmit={handleEditSubmit}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <h4 style={{ marginBottom: 8, color: '#333' }}>주문자 정보</h4>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>주문자명</label>
+                      <input
+                        type="text"
+                        value={editForm.buyerName}
+                        onChange={(e) => setEditForm({...editForm, buyerName: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>이메일</label>
+                      <input
+                        type="email"
+                        value={editForm.buyerEmail}
+                        onChange={(e) => setEditForm({...editForm, buyerEmail: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>연락처</label>
+                      <input
+                        type="text"
+                        value={editForm.buyerTel}
+                        onChange={(e) => setEditForm({...editForm, buyerTel: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 style={{ marginBottom: 8, color: '#333' }}>배송지 정보</h4>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>수령인</label>
+                      <input
+                        type="text"
+                        value={editForm.recipient}
+                        onChange={(e) => setEditForm({...editForm, recipient: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>연락처 1</label>
+                      <input
+                        type="text"
+                        value={editForm.contactNumber1}
+                        onChange={(e) => setEditForm({...editForm, contactNumber1: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>연락처 2</label>
+                      <input
+                        type="text"
+                        value={editForm.contactNumber2}
+                        onChange={(e) => setEditForm({...editForm, contactNumber2: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <h4 style={{ marginBottom: 8, color: '#333' }}>주소 정보</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>우편번호</label>
+                      <input
+                        type="text"
+                        value={editForm.postalCode}
+                        onChange={(e) => setEditForm({...editForm, postalCode: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>주소</label>
+                      <input
+                        type="text"
+                        value={editForm.address}
+                        onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: 8, gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>상세주소</label>
+                      <input
+                        type="text"
+                        value={editForm.detailedAddress}
+                        onChange={(e) => setEditForm({...editForm, detailedAddress: e.target.value})}
+                        style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </form>
             )}
             
-            <button
-              onClick={() => setShowPaymentModal(false)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: '#1976d2',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: 'bold',
-                marginTop: 16
-              }}
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 주문 수정 모달 */}
-      {showEditModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: '#fff',
-            padding: 24,
-            borderRadius: 8,
-            maxWidth: 600,
-            width: '90%',
-            maxHeight: '90vh',
-            overflow: 'auto'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, color: '#333' }}>주문 정보 수정</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 20,
-                  cursor: 'pointer',
-                  color: '#666'
-                }}
-              >
-                ×
-              </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              {isEditing ? (
+                <>
+                  <button
+                    type="submit"
+                    onClick={handleEditSubmit}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      background: '#28a745',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    저장
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      background: '#6c757d',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#1976d2',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  닫기
+                </button>
+              )}
             </div>
-            
-            <form onSubmit={handleEditSubmit}>
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ marginBottom: 8, color: '#333' }}>주문자 정보</h4>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>주문자명</label>
-                  <input
-                    type="text"
-                    value={editForm.buyerName}
-                    onChange={(e) => setEditForm({...editForm, buyerName: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>이메일</label>
-                  <input
-                    type="email"
-                    value={editForm.buyerEmail}
-                    onChange={(e) => setEditForm({...editForm, buyerEmail: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>연락처</label>
-                  <input
-                    type="text"
-                    value={editForm.buyerTel}
-                    onChange={(e) => setEditForm({...editForm, buyerTel: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ marginBottom: 8, color: '#333' }}>배송지 정보</h4>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>수령인</label>
-                  <input
-                    type="text"
-                    value={editForm.recipient}
-                    onChange={(e) => setEditForm({...editForm, recipient: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>연락처 1</label>
-                  <input
-                    type="text"
-                    value={editForm.contactNumber1}
-                    onChange={(e) => setEditForm({...editForm, contactNumber1: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>연락처 2</label>
-                  <input
-                    type="text"
-                    value={editForm.contactNumber2}
-                    onChange={(e) => setEditForm({...editForm, contactNumber2: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>우편번호</label>
-                  <input
-                    type="text"
-                    value={editForm.postalCode}
-                    onChange={(e) => setEditForm({...editForm, postalCode: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>주소</label>
-                  <input
-                    type="text"
-                    value={editForm.address}
-                    onChange={(e) => setEditForm({...editForm, address: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 4 }}>상세주소</label>
-                  <input
-                    type="text"
-                    value={editForm.detailedAddress}
-                    onChange={(e) => setEditForm({...editForm, detailedAddress: e.target.value})}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
-                  />
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="submit"
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    background: '#28a745',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    fontWeight: 'bold'
-                  }}
-                >
-                  수정
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    background: '#6c757d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    fontWeight: 'bold'
-                  }}
-                >
-                  취소
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

@@ -3,10 +3,15 @@ import axios from 'axios';
 export async function handleTokenRefresh(error: any, api: any) {
   const originalRequest = error.config as any;
   if (
-    error.response?.status === 401 &&
+    (error.response?.status === 401 || error.response?.status === 403) &&
     !originalRequest._retry &&
     localStorage.getItem('refreshToken')
   ) {
+    // 403 에러 발생 시 콘솔에 로그 남기기
+    if (error.response?.status === 403) {
+      console.log('403 에러 발생: 토큰 재발급 시도');
+    }
+    
     originalRequest._retry = true;
     try {
       const refreshToken = localStorage.getItem('refreshToken');
