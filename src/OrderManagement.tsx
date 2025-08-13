@@ -293,11 +293,17 @@ const OrderManagement: React.FC = () => {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR');
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return null;
+    try {
+      return new Date(dateString).toLocaleString('ko-KR');
+    } catch (error) {
+      return null;
+    }
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) return '0원';
     return new Intl.NumberFormat('ko-KR').format(price) + '원';
   };
 
@@ -309,15 +315,15 @@ const OrderManagement: React.FC = () => {
   const handleShowEditForm = (order: OrderInfo) => {
     setEditForm({
       orderId: order.id,
-      recipient: order.deliveryInfo.recipient,
-      contactNumber1: order.deliveryInfo.contactNumber1,
-      contactNumber2: order.deliveryInfo.contactNumber2,
-      postalCode: order.deliveryInfo.postalCode,
-      address: order.deliveryInfo.address,
-      detailedAddress: order.deliveryInfo.detailedAddress,
-      buyerName: order.approveResult.buyerName,
-      buyerTel: order.approveResult.buyerTel,
-      buyerEmail: order.approveResult.buyerEmail
+      recipient: order.deliveryInfo?.recipient || '',
+      contactNumber1: order.deliveryInfo?.contactNumber1 || '',
+      contactNumber2: order.deliveryInfo?.contactNumber2 || '',
+      postalCode: order.deliveryInfo?.postalCode || '',
+      address: order.deliveryInfo?.address || '',
+      detailedAddress: order.deliveryInfo?.detailedAddress || '',
+      buyerName: order.approveResult?.buyerName || '',
+      buyerTel: order.approveResult?.buyerTel || '',
+      buyerEmail: order.approveResult?.buyerEmail || ''
     });
     setShowEditModal(true);
   };
@@ -329,7 +335,7 @@ const OrderManagement: React.FC = () => {
       const requestData = {
         orderId: editForm.orderId,
         approveResult: {
-          ...selectedOrder!.approveResult,
+          ...selectedOrder?.approveResult,
           buyerName: editForm.buyerName,
           buyerTel: editForm.buyerTel,
           buyerEmail: editForm.buyerEmail
@@ -530,43 +536,43 @@ const OrderManagement: React.FC = () => {
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
                       <div>
-                        <div style={{ fontWeight: 'bold' }}>{order.approveResult.buyerName}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>{order.approveResult.buyerEmail}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>{order.approveResult.buyerTel}</div>
+                        <div style={{ fontWeight: 'bold' }}>{order.approveResult?.buyerName || '정보 없음'}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>{order.approveResult?.buyerEmail || '정보 없음'}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>{order.approveResult?.buyerTel || '정보 없음'}</div>
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 'bold' }}>
-                      {formatPrice(order.approveResult.amount)}
+                      {formatPrice(order.approveResult?.amount || 0)}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
-                      {getStatusBadge(order.status)}
+                      {getStatusBadge(order.status || 'UNKNOWN')}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
                       <div>
-                        {order.items.map((item, index) => (
-                          <div key={item.id} style={{ marginBottom: index < order.items.length - 1 ? 4 : 0 }}>
-                            <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                            <div style={{ fontSize: 12, color: '#666' }}>{formatPrice(item.price)}</div>
+                        {order.items?.map((item, index) => (
+                          <div key={item.id} style={{ marginBottom: index < (order.items?.length || 0) - 1 ? 4 : 0 }}>
+                            <div style={{ fontWeight: 'bold' }}>{item.name || '상품명 없음'}</div>
+                            <div style={{ fontSize: 12, color: '#666' }}>{formatPrice(item.price || 0)}</div>
                           </div>
-                        ))}
+                        )) || '상품 정보 없음'}
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
                       <div>
-                        <div style={{ fontWeight: 'bold' }}>{order.deliveryInfo.recipient}</div>
+                        <div style={{ fontWeight: 'bold' }}>{order.deliveryInfo?.recipient || '수령인 정보 없음'}</div>
                         <div style={{ fontSize: 12, color: '#666' }}>
-                          {order.deliveryInfo.address}
+                          {order.deliveryInfo?.address || '주소 정보 없음'}
                         </div>
                         <div style={{ fontSize: 12, color: '#666' }}>
-                          {order.deliveryInfo.contactNumber1}
+                          {order.deliveryInfo?.contactNumber1 || '연락처 정보 없음'}
                         </div>
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
-                      {formatDate(order.createAt)}
+                      {formatDate(order.createAt) || '날짜 정보 없음'}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
-                      {formatDate(order.updatedAt)}
+                      {formatDate(order.updatedAt) || '날짜 정보 없음'}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -669,31 +675,31 @@ const OrderManagement: React.FC = () => {
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>결제 상태:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.status}
+                    {selectedOrder.approveResult?.status || '정보 없음'}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>결제 방법:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.payMethod}
+                    {selectedOrder.approveResult?.payMethod || '정보 없음'}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>결제 금액:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {formatPrice(selectedOrder.approveResult.amount)}
+                    {formatPrice(selectedOrder.approveResult?.amount)}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>승인 번호:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.approveNo}
+                    {selectedOrder.approveResult?.approveNo || '정보 없음'}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>TID:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.tid}
+                    {selectedOrder.approveResult?.tid || '정보 없음'}
                   </div>
                 </div>
               </div>
@@ -703,31 +709,31 @@ const OrderManagement: React.FC = () => {
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>주문자명:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.buyerName}
+                    {selectedOrder.approveResult?.buyerName || '정보 없음'}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>이메일:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.buyerEmail}
+                    {selectedOrder.approveResult?.buyerEmail || '정보 없음'}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>연락처:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.buyerTel}
+                    {selectedOrder.approveResult?.buyerTel || '정보 없음'}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>결제일시:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.paidAt ? formatDate(selectedOrder.approveResult.paidAt) : '-'}
+                    {selectedOrder.approveResult?.paidAt ? formatDate(selectedOrder.approveResult.paidAt) : '-'}
                   </div>
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontWeight: 'bold' }}>상품명:</label>
                   <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                    {selectedOrder.approveResult.goodsName}
+                    {selectedOrder.approveResult?.goodsName || '정보 없음'}
                   </div>
                 </div>
               </div>
@@ -740,13 +746,13 @@ const OrderManagement: React.FC = () => {
                   <div style={{ marginBottom: 8 }}>
                     <label style={{ fontWeight: 'bold' }}>카드명:</label>
                     <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                      {selectedOrder.approveResult.card.cardName}
+                      {selectedOrder.approveResult.card?.cardName || '정보 없음'}
                     </div>
                   </div>
                   <div style={{ marginBottom: 8 }}>
                     <label style={{ fontWeight: 'bold' }}>할부:</label>
                     <div style={{ padding: 4, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                      {selectedOrder.approveResult.card.cardQuota}개월
+                      {selectedOrder.approveResult.card?.cardQuota || 0}개월
                     </div>
                   </div>
                 </div>
