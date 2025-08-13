@@ -252,6 +252,20 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  const handleAcceptOrder = async (orderId: number) => {
+    if (!window.confirm(`주문 #${orderId}을 수락하시겠습니까?\n주문 상태가 '제작중'으로 변경됩니다.`)) {
+      return;
+    }
+
+    try {
+      await api.patch(`/admin/order/accept?orderId=${orderId}`);
+      alert('주문이 수락되었습니다.');
+      fetchOrders(); // 목록 새로고침
+    } catch (err: any) {
+      alert(err.response?.data?.message || '주문 수락에 실패했습니다.');
+    }
+  };
+
   const handleSort = (field: 'id' | 'createAt' | 'updatedAt' | 'status' | 'amount') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -612,6 +626,22 @@ const OrderManagement: React.FC = () => {
                         >
                           결제정보
                         </button>
+                        {order.status === 'PREPARING_PRODUCT' && (
+                          <button
+                            onClick={() => handleAcceptOrder(order.id)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#28a745',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontSize: 11
+                            }}
+                          >
+                            주문수락
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDeleteOrder(order.id)}
                           disabled={deleteLoading === order.id}
