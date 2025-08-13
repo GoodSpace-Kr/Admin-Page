@@ -74,6 +74,12 @@ interface PaymentApproveResult {
   };
 }
 
+interface PaymentIssueResponseDto {
+  id: number;
+  orderId: number;
+  tid: number;
+}
+
 interface Delivery {
   recipient: string;
   contactNumber1: string;
@@ -117,6 +123,8 @@ const OrderManagement: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderInfo | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [paymentIssues, setPaymentIssues] = useState<PaymentIssueResponseDto[]>([]);
+  const [showPaymentIssueModal, setShowPaymentIssueModal] = useState(false);
   const [editForm, setEditForm] = useState({
     orderId: 0,
     recipient: '',
@@ -133,6 +141,7 @@ const OrderManagement: React.FC = () => {
 
   useEffect(() => {
     fetchOrders();
+    fetchPaymentIssues();
   }, []);
 
   const fetchOrders = async () => {
@@ -147,6 +156,16 @@ const OrderManagement: React.FC = () => {
       console.error('주문 조회 오류:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPaymentIssues = async () => {
+    try {
+      const response = await api.get<PaymentIssueResponseDto[]>('/payment-issue');
+      setPaymentIssues(response.data);
+    } catch (err: any) {
+      console.error('결제 에러 이슈 조회 오류:', err);
+      setPaymentIssues([]);
     }
   };
 
@@ -263,6 +282,20 @@ const OrderManagement: React.FC = () => {
       fetchOrders(); // 목록 새로고침
     } catch (err: any) {
       alert(err.response?.data?.message || '주문 수락에 실패했습니다.');
+    }
+  };
+
+  const handleResolvePaymentIssue = async (issueId: number) => {
+    if (!window.confirm(`결제 에러 이슈 #${issueId}을 해결 완료 처리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/payment-issue?issueId=${issueId}`);
+      alert('결제 에러 이슈가 해결 완료 처리되었습니다.');
+      fetchPaymentIssues(); // 목록 새로고침
+    } catch (err: any) {
+      alert(err.response?.data?.message || '결제 에러 이슈 해결 처리에 실패했습니다.');
     }
   };
 
@@ -407,20 +440,37 @@ const OrderManagement: React.FC = () => {
     <div style={{ maxWidth: 1200, margin: '50px auto', padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <h1>주문 내역 관리</h1>
-        <button 
-          onClick={handleBackToMain}
-          style={{ 
-            padding: '10px 20px', 
-            background: '#666', 
-            color: '#fff', 
-            border: 'none', 
-            borderRadius: 4, 
-            cursor: 'pointer',
-            fontSize: 14
-          }}
-        >
-          메인으로 돌아가기
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            onClick={() => setShowPaymentIssueModal(true)}
+            style={{
+              padding: '10px 20px',
+              background: paymentIssues.length > 0 ? '#dc3545' : '#6c757d',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 'bold'
+            }}
+          >
+            결제 에러 조회 {paymentIssues.length > 0 && `(${paymentIssues.length}건)`}
+          </button>
+          <button 
+            onClick={handleBackToMain}
+            style={{ 
+              padding: '10px 20px', 
+              background: '#666', 
+              color: '#fff', 
+              border: 'none', 
+              borderRadius: 4, 
+              cursor: 'pointer',
+              fontSize: 14
+            }}
+          >
+            메인으로 돌아가기
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -1025,6 +1075,152 @@ const OrderManagement: React.FC = () => {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 결제 에러 이슈 모달 */}
+      {showPaymentIssueModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            padding: 24,
+            borderRadius: 8,
+            maxWidth: 800,
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, color: '#333' }}>
+                결제 에러 이슈 ({paymentIssues.length}건)
+              </h3>
+              <button
+                onClick={() => setShowPaymentIssueModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 20,
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            {paymentIssues.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 48, color: '#666' }}>
+                현재 발생한 결제 에러가 없습니다.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8f9fa' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>
+                        이슈 ID
+                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>
+                        주문 ID
+                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>
+                        TID
+                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>
+                        관리
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentIssues.map((issue) => (
+                      <tr key={issue.id} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 'bold' }}>
+                          #{issue.id}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 14 }}>
+                          #{issue.orderId}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 14 }}>
+                          {issue.tid}
+                        </td>
+                                                 <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                             <button
+                               onClick={() => {
+                                 // 해당 주문의 결제 정보 상세 보기
+                                 const order = orders.find(o => o.id === issue.orderId);
+                                 if (order) {
+                                   setSelectedOrder(order);
+                                   setShowPaymentModal(true);
+                                   setShowPaymentIssueModal(false);
+                                 } else {
+                                   alert('해당 주문을 찾을 수 없습니다.');
+                                 }
+                               }}
+                               style={{
+                                 padding: '6px 12px',
+                                 background: '#17a2b8',
+                                 color: '#fff',
+                                 border: 'none',
+                                 borderRadius: 4,
+                                 cursor: 'pointer',
+                                 fontSize: 12
+                               }}
+                             >
+                               주문 상세
+                             </button>
+                             <button
+                               onClick={() => handleResolvePaymentIssue(issue.id)}
+                               style={{
+                                 padding: '6px 12px',
+                                 background: '#28a745',
+                                 color: '#fff',
+                                 border: 'none',
+                                 borderRadius: 4,
+                                 cursor: 'pointer',
+                                 fontSize: 12
+                               }}
+                             >
+                               해결 완료
+                             </button>
+                           </div>
+                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            <button
+              onClick={() => setShowPaymentIssueModal(false)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#1976d2',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 'bold',
+                marginTop: 16
+              }}
+            >
+              닫기
+            </button>
           </div>
         </div>
       )}
