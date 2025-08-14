@@ -11,7 +11,7 @@ interface ItemInfo {
   shortDescription: string;
   landingPageDescription: string;
   imageUrls?: string[];
-  status: 'PRIVATE' | 'PUBLIC';
+  status: 'PRIVATE' | 'TEST' | 'PUBLIC';
 }
 
 interface ItemImageInfo {
@@ -31,7 +31,7 @@ const ItemEdit: React.FC = () => {
   const [price, setPrice] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [landingPageDescription, setLandingPageDescription] = useState('');
-  const [status, setStatus] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
+  const [status, setStatus] = useState<'PRIVATE' | 'TEST' | 'PUBLIC'>('PRIVATE');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [images, setImages] = useState<ItemImageInfo[]>([]);
@@ -746,8 +746,8 @@ const ItemEdit: React.FC = () => {
             <select
               value={status}
               onChange={(e) => {
-                const newStatus = e.target.value as 'PRIVATE' | 'PUBLIC';
-                const statusText = newStatus === 'PRIVATE' ? '비공개' : '공개';
+                const newStatus = e.target.value as 'PRIVATE' | 'TEST' | 'PUBLIC';
+                const statusText = newStatus === 'PRIVATE' ? '비공개' : newStatus === 'TEST' ? '테스트' : '공개';
                 if (window.confirm(`정말 "${statusText}"로 수정하시겠습니까?`)) {
                   setStatus(newStatus);
                 } else {
@@ -759,6 +759,7 @@ const ItemEdit: React.FC = () => {
               disabled={loading}
             >
               <option value="PRIVATE">비공개</option>
+              <option value="TEST">테스트</option>
               <option value="PUBLIC">공개</option>
             </select>
           </div>

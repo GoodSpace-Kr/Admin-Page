@@ -11,7 +11,7 @@ interface ClientInfoDto {
   backgroundImageUrl: string; // 서버에서 받을 때는 URL
   introduction: string;
   clientType: string;
-  status: 'PRIVATE' | 'PUBLIC';
+  status: 'PRIVATE' | 'TEST' | 'PUBLIC';
 }
 
 const ClientManagement: React.FC = () => {
@@ -71,9 +71,10 @@ const ClientManagement: React.FC = () => {
     );
   };
 
-  const getStatusBadge = (status: 'PRIVATE' | 'PUBLIC') => {
+  const getStatusBadge = (status: 'PRIVATE' | 'TEST' | 'PUBLIC') => {
     const statusColors = {
       'PRIVATE': { bg: '#ffebee', color: '#c62828', text: '비공개' },
+      'TEST': { bg: '#fff3e0', color: '#f57c00', text: '테스트' },
       'PUBLIC': { bg: '#e8f5e8', color: '#2e7d32', text: '공개' }
     };
 

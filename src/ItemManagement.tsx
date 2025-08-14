@@ -11,7 +11,7 @@ interface ItemInfo {
   shortDescription: string;
   landingPageDescription: string;
   imageUrls: string[];
-  status: 'PRIVATE' | 'PUBLIC';
+  status: 'PRIVATE' | 'TEST' | 'PUBLIC';
   titleImageUrl?: string;
 }
 
@@ -22,7 +22,7 @@ interface ClientDetail {
   backgroundImageUrl: string;
   introduction: string;
   clientType: string;
-  status: 'PRIVATE' | 'PUBLIC';
+  status: 'PRIVATE' | 'TEST' | 'PUBLIC';
 }
 
 const ItemManagement: React.FC = () => {
@@ -87,9 +87,10 @@ const ItemManagement: React.FC = () => {
     navigate(`/client/${clientId}/items/add`);
   };
 
-  const getStatusBadge = (status: 'PRIVATE' | 'PUBLIC') => {
+  const getStatusBadge = (status: 'PRIVATE' | 'TEST' | 'PUBLIC') => {
     const statusColors = {
       'PRIVATE': { bg: '#ffebee', color: '#c62828', text: '비공개' },
+      'TEST': { bg: '#fff3e0', color: '#f57c00', text: '테스트' },
       'PUBLIC': { bg: '#e8f5e8', color: '#2e7d32', text: '공개' }
     };
 

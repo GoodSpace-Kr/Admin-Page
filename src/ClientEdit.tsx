@@ -11,7 +11,7 @@ interface ClientDetail {
   backgroundImageUrl: string;
   introduction: string;
   clientType: 'CREATOR' | 'INFLUENCER';
-  status: 'PUBLIC' | 'PRIVATE';
+  status: 'PRIVATE' | 'TEST' | 'PUBLIC';
 }
 
 const ClientEdit: React.FC = () => {
@@ -29,7 +29,7 @@ const ClientEdit: React.FC = () => {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   const [introduction, setIntroduction] = useState('');
   const [clientType, setClientType] = useState<'CREATOR' | 'INFLUENCER'>('CREATOR');
-  const [status, setStatus] = useState<'PUBLIC' | 'PRIVATE'>('PRIVATE');
+  const [status, setStatus] = useState<'PRIVATE' | 'TEST' | 'PUBLIC'>('PRIVATE');
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
 
   useEffect(() => {
@@ -250,8 +250,8 @@ const ClientEdit: React.FC = () => {
           <select
             value={status}
             onChange={(e) => {
-              const newStatus = e.target.value as 'PUBLIC' | 'PRIVATE';
-              const statusText = newStatus === 'PRIVATE' ? '비공개' : '공개';
+              const newStatus = e.target.value as 'PRIVATE' | 'TEST' | 'PUBLIC';
+              const statusText = newStatus === 'PRIVATE' ? '비공개' : newStatus === 'TEST' ? '테스트' : '공개';
               if (window.confirm(`정말 "${statusText}"로 수정하시겠습니까?`)) {
                 setStatus(newStatus);
               } else {
@@ -263,6 +263,7 @@ const ClientEdit: React.FC = () => {
             disabled={loading}
           >
             <option value="PRIVATE">비공개</option>
+            <option value="TEST">테스트</option>
             <option value="PUBLIC">공개</option>
           </select>
         </div>
