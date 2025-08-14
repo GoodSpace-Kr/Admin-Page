@@ -105,6 +105,7 @@ interface OrderInfo {
   approveResult: PaymentApproveResult;
   deliveryInfo: Delivery;
   status: 'PAYMENT_CHECKING' | 'PREPARING_PRODUCT' | 'MAKING_PRODUCT' | 'PREPARING_DELIVERY' | 'SHIPPING' | 'DELIVERED' | 'CANCELED';
+  trackingNumber?: string;
   createAt: string;
   updatedAt: string;
   items: ItemInfo[];
@@ -137,6 +138,12 @@ const OrderManagement: React.FC = () => {
     buyerTel: '',
     buyerEmail: ''
   });
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [trackingForm, setTrackingForm] = useState({
+    orderId: 0,
+    trackingNumber: ''
+  });
+  const [isTrackingEdit, setIsTrackingEdit] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -282,6 +289,48 @@ const OrderManagement: React.FC = () => {
       fetchOrders(); // 목록 새로고침
     } catch (err: any) {
       alert(err.response?.data?.message || '주문 수락에 실패했습니다.');
+    }
+  };
+
+  const handleRegisterTrackingNumber = async (orderId: number) => {
+    setTrackingForm({ orderId, trackingNumber: '' });
+    setIsTrackingEdit(false);
+    setShowTrackingModal(true);
+  };
+
+  const handleUpdateTrackingNumber = async (orderId: number) => {
+    setTrackingForm({ orderId, trackingNumber: '' });
+    setIsTrackingEdit(true);
+    setShowTrackingModal(true);
+  };
+
+  const handleTrackingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!trackingForm.trackingNumber.trim()) {
+      alert('등기번호를 입력해주세요.');
+      return;
+    }
+
+    try {
+      if (isTrackingEdit) {
+        await api.patch('/admin/order/tracking-number', {
+          orderId: trackingForm.orderId,
+          trackingNumber: trackingForm.trackingNumber.trim()
+        });
+        alert('등기번호가 수정되었습니다.');
+      } else {
+        await api.post('/admin/order/tracking-number', {
+          orderId: trackingForm.orderId,
+          trackingNumber: trackingForm.trackingNumber.trim()
+        });
+        alert('등기번호가 등록되었습니다.');
+      }
+      
+      setShowTrackingModal(false);
+      fetchOrders(); // 목록 새로고침
+    } catch (err: any) {
+      alert(err.response?.data?.message || '등기번호 처리에 실패했습니다.');
     }
   };
 
@@ -592,6 +641,9 @@ const OrderManagement: React.FC = () => {
                     상태 {getSortIcon('status')}
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>
+                    등기번호
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>
                     상품
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>
@@ -632,6 +684,23 @@ const OrderManagement: React.FC = () => {
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
                       {getStatusBadge(order.status || 'UNKNOWN')}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: 14 }}>
+                      {order.trackingNumber ? (
+                        <div style={{ 
+                          padding: '4px 8px', 
+                          backgroundColor: '#e3f2fd', 
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          color: '#1976d2',
+                          display: 'inline-block'
+                        }}>
+                          {order.trackingNumber}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#999', fontSize: '12px' }}>등록되지 않음</span>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 14 }}>
                       <div>
@@ -690,6 +759,38 @@ const OrderManagement: React.FC = () => {
                             }}
                           >
                             주문수락
+                          </button>
+                        )}
+                        {order.status === 'MAKING_PRODUCT' && (
+                          <button
+                            onClick={() => handleRegisterTrackingNumber(order.id)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#17a2b8',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontSize: 11
+                            }}
+                          >
+                            등기번호등록
+                          </button>
+                        )}
+                        {order.status === 'PREPARING_DELIVERY' && (
+                          <button
+                            onClick={() => handleUpdateTrackingNumber(order.id)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#ffc107',
+                              color: '#212529',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontSize: 11
+                            }}
+                          >
+                            등기번호수정
                           </button>
                         )}
                         <button
@@ -1221,6 +1322,121 @@ const OrderManagement: React.FC = () => {
             >
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 등기번호 입력/수정 모달 */}
+      {showTrackingModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            padding: 24,
+            borderRadius: 8,
+            maxWidth: 500,
+            width: '90%'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, color: '#333' }}>
+                {isTrackingEdit ? '등기번호 수정' : '등기번호 등록'}
+              </h3>
+              <button
+                onClick={() => setShowTrackingModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 20,
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleTrackingSubmit}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+                  주문 ID
+                </label>
+                <div style={{ 
+                  padding: '12px', 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: 4, 
+                  border: '1px solid #ddd',
+                  fontWeight: 'bold'
+                }}>
+                  #{trackingForm.orderId}
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+                  등기번호 *
+                </label>
+                <input
+                  type="text"
+                  value={trackingForm.trackingNumber}
+                  onChange={(e) => setTrackingForm({...trackingForm, trackingNumber: e.target.value})}
+                  placeholder="등기번호를 입력하세요"
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    border: '1px solid #ddd', 
+                    borderRadius: 4,
+                    fontSize: '14px'
+                  }}
+                  required
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: isTrackingEdit ? '#ffc107' : '#17a2b8',
+                    color: isTrackingEdit ? '#212529' : '#fff',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {isTrackingEdit ? '수정' : '등록'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTrackingModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: '#6c757d',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
