@@ -2,6 +2,15 @@ import axios from 'axios';
 
 export async function handleTokenRefresh(error: any, api: any) {
   const originalRequest = error.config as any;
+  
+  // 401/403 에러가 발생했는데 refreshToken이 없는 경우 로그인 페이지로 리다이렉트
+  if ((error.response?.status === 401 || error.response?.status === 403) && !localStorage.getItem('refreshToken')) {
+    localStorage.removeItem('jwt');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '/login';
+    return Promise.reject(error);
+  }
+  
   if (
     (error.response?.status === 401 || error.response?.status === 403) &&
     !originalRequest._retry &&
@@ -32,7 +41,8 @@ export async function handleTokenRefresh(error: any, api: any) {
       // 리프레시 토큰도 만료된 경우 로그아웃 처리 등
       localStorage.removeItem('jwt');
       localStorage.removeItem('refreshToken');
-      window.location.reload();
+      // 로그인 페이지로 리다이렉트
+      window.location.href = '/login';
     }
   }
   return Promise.reject(error);
